@@ -48,6 +48,7 @@ dependencies {
 
 
 shadowJar {
+    archivesBaseName = 'simple'
     classifier = 'fat'
     manifest {
         attributes 'Main-Verticle': 'kr.co.signal9.vertx.SimpleVerticle'
@@ -57,4 +58,42 @@ shadowJar {
     }
 }
 
+task copyJarLocal (type: Copy, dependsOn: shadowJar) {
+    from 'build/libs/simple-0.0.1-fat.jar'
+    into 'local/'
+}
+
+remotes {
+    dev {
+        host = '10.1.1.1'
+        user = 'user'
+        identity = file('/Users/dev/.ssh/id_rsa')
+    }
+
+    real {
+        host = '10.1.1.1'
+        user = 'user'
+        identity = file('/Users/dev/.ssh/id_rsa')
+    }
+}
+
+task putDevJar {
+    doLast {
+        ssh.run {
+            session(remotes.dev) {
+                put from: './build/libs/simple-'+version+'.jar', into: '/home/dev/apps/simple/'
+            }
+        }
+    }
+}
+
+task putRealJar {
+    doLast {
+        ssh.run {
+            session(remotes.real) {
+                put from: './build/libs/simple-'+version+'.jar', into: '/home/dev/apps/simple/'
+            }
+        }
+    }
+}
 

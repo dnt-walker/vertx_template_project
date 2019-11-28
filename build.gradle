@@ -58,9 +58,9 @@ shadowJar {
     }
 }
 
-task copyJarLocal (type: Copy, dependsOn: shadowJar) {
-    from 'build/libs/simple-0.0.1-fat.jar'
-    into 'local/'
+task copyBin (type: Copy, dependsOn: shadowJar) {
+    from "build/libs/simple-$version-fat.jar"
+    into 'bin/'
 }
 
 remotes {

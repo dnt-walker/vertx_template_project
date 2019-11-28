@@ -1,0 +1,85 @@
+#!/bin/sh 
+
+# APP Configure
+APP_DESC="Signal9 Simple."
+APP_NAME="simple"
+APP_VERSION="1.0-SNAPSHOT"
+APP_HOME=/Users/walker/Sources/java/vertx-simple/local
+
+# Run Configure
+APP_INSTANCE_NUMB=2
+#JRE_CMD=/usr/java/jdk1.8.0_121/jre/bin/java
+JRE_CMD=/Library/Java/JavaVirtualMachines/jdk8/Contents/Home/bin/java
+
+# Memory
+JVM_MIN_MEM=128
+JVM_MAX_MEM=128
+METASPACE_SIZE=128
+MAX_METASPACE_SIZE=256
+
+# JMX
+JMX_PORT=9904
+
+
+# ------
+APP_CONF_PATH="${APP_HOME}"
+APP_JAR="${APP_HOME}/simple-${APP_VERSION}-fat.jar"
+APP_LOG_PATH="${APP_HOME}/logs"
+
+OUTPUT_FILE="${APP_LOG_PATH}/${APP_NAME}.out"
+TEE_CMD=`which tee`
+
+TIMESTAMP=$(date +%s)
+
+JVM_BASE_OPTS="-server -Xms${JVM_MIN_MEM}M -Xmx${JVM_MAX_MEM}M \
+-XX:MaxMetaspaceSize=${MAX_METASPACE_SIZE}M \
+-XX:MetaspaceSize=${MAX_METASPACE_SIZE}M"
+
+JVM_GC_OPTS="-XX:+UseG1GC \
+-XX:InitiatingHeapOccupancyPercent=45 \
+-XX:+HeapDumpOnOutOfMemoryError \
+-XX:HeapDumpPath=/tmp/${APP_NAME}_${TIMESTAMP}.hprof \
+-XX:+UnlockDiagnosticVMOptions \
+-XX:+G1SummarizeConcMark \
+-Xloggc:${APP_LOG_PATH}/${APP_NAME}_gc.log \
+-XX:+UseGCLogFileRotation \
+-XX:NumberOfGCLogFiles=10 \
+-XX:GCLogFileSize=10485760 \
+-XX:+PrintFlagsFinal \
+-XX:+PrintReferenceGC \
+-verbose:gc \
+-XX:+PrintTenuringDistribution \
+-XX:+PrintGCDetails \
+-XX:+PrintGCDateStamps \
+-XX:+PrintAdaptiveSizePolicy"
+
+LOG_OPTS="-Dlogback.configurationFile=${APP_CONF_PATH}/logback.xml \
+-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
+
+JMX_OPTS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=${JMX_PORT} \
+-Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"
+
+_VERTX_OPTS="${JVM_BASE_OPTS} ${JVM_GC_OPTS} ${LOG_OPTS} ${JMX_OPTS}"
+
+start() {
+  $JRE_CMD -jar $APP_JAR start -conf $APP_CONF_PATH/configure.json \
+--java-opts="${_VERTX_OPTS}" -id=$APP_NAME --redirect-output -instances $APP_INSTANCE_NUMB | $TEE_CMD -a $OUTPUT_FILE >/dev/null &
+}
+
+stop() {
+  $JRE_CMD -jar $APP_JAR stop $APP_NAME
+}
+
+case "$1" in
+start)
+    start
+;;
+
+stop)
+    stop
+;;
+
+*)
+    echo "Usage: $0 {start|stop}"
+    exit 1
+esac

@@ -34,7 +34,7 @@ local.properties
 *.classpath
 # Eclipse Core
 .project
-local/
+#local/
 logs/
 out/
 

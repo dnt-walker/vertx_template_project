@@ -8,16 +8,28 @@ import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Optional;
+
 public class SimpleVerticle extends AbstractVerticle {
     private static final Logger log = LoggerFactory.getLogger(SimpleVerticle.class);
 
     @Override
     public void start(final Future<Void> startFuture) throws RuntimeException {
-        System.out.println("this is std out print. start verticle");
-        System.err.println("this is std err print. start verticle");
+        try {
+            JsonObject configuration = Optional.ofNullable(context.config())
+                    .orElseThrow(()->new Exception("configure error."));
+            log.info(configuration.encodePrettily());
 
-        JsonObject configuration = context.config();
-        log.info(configuration.encodePrettily());
+            System.out.println("this is std out print. start verticle");
+            System.err.println("this is std err print. start verticle");
+
+            startFuture.complete();
+        } catch (Throwable th) {
+            startFuture.fail(th);
+        }
     }
 
     @Override
@@ -38,15 +50,25 @@ public class SimpleVerticle extends AbstractVerticle {
             appDir = System.getProperty("user.dir");
         }
 
+        if (!Files.exists(Paths.get(appDir + "/configure.json"))) {
+            System.out.println("not exist configure file.");
+            System.exit(1);
+        }
 
-        ConfigStoreOptions fileStore = new ConfigStoreOptions()
-                .setType("file")
-                .setConfig(new JsonObject().put("path", appDir+"/configure.json"));
-        ConfigStoreOptions sysPropsStore = new ConfigStoreOptions().setType("sys");
-        ConfigRetrieverOptions configureOptions = new ConfigRetrieverOptions()
-                .addStore(fileStore);//.addStore(sysPropsStore);
+        ConfigRetriever retriever = null;
+        try {
+            ConfigStoreOptions fileStore = new ConfigStoreOptions()
+                    .setType("file")
+                    .setConfig(new JsonObject().put("path", appDir + "/configure.json"));
+            ConfigStoreOptions sysPropsStore = new ConfigStoreOptions().setType("sys");
+            ConfigRetrieverOptions configureOptions = new ConfigRetrieverOptions()
+                    .addStore(fileStore);//.addStore(sysPropsStore);
 
-        ConfigRetriever retriever = ConfigRetriever.create(Vertx.vertx(), configureOptions);
+            retriever = ConfigRetriever.create(Vertx.vertx(), configureOptions);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            System.exit(1);
+        }
 
         VertxOptions options = new VertxOptions();
         Vertx vertx = Vertx.vertx(options);
@@ -64,9 +86,10 @@ public class SimpleVerticle extends AbstractVerticle {
                         System.out.println("Deployment id is: " + res.result());
                     } else {
                         System.out.println("Deployment failed! " + res.cause().getMessage());
+                        System.exit(1);
                     }
                 });
-                //System.out.println(config.encodePrettily());
+                System.out.println(config.encodePrettily());
             }
         });
     }

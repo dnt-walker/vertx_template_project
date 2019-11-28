@@ -1,0 +1,60 @@
+buildscript {
+    ext {
+        vertxVersion = '3.8.4'
+    }
+    repositories {
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "org.hidetake:gradle-ssh-plugin:2.9.0"
+        classpath "com.github.jengelman.gradle.plugins:shadow:4.0.4"
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: "com.github.johnrengelman.shadow"
+apply plugin: "org.hidetake.ssh"
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+group 'kr.co.signal9'
+version '1.0-SNAPSHOT'
+mainClassName='io.vertx.core.Launcher'
+//mainClassName='kr.co.signal9.vertx.SimpleVerticle'
+
+dependencies {
+    compile "io.vertx:vertx-unit:$vertxVersion"
+    compile "io.vertx:vertx-core:$vertxVersion"
+    compile "io.vertx:vertx-web:$vertxVersion"
+
+    compile "io.vertx:vertx-config:$vertxVersion"
+
+    runtime group: 'org.slf4j', name: 'slf4j-api', version: '1.7.26'
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    compile group: 'org.slf4j', name: 'log4j-over-slf4j', version: '1.7.26'
+    compile "org.apache.logging.log4j:log4j-to-slf4j:2.10.0"
+}
+
+
+shadowJar {
+    classifier = 'fat'
+    manifest {
+        attributes 'Main-Verticle': 'kr.co.signal9.vertx.SimpleVerticle'
+    }
+    mergeServiceFiles {
+        include 'META-INF/services/io.vertx.core.spi.VerticleFactory'
+    }
+}
+
+
